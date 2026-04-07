@@ -8,7 +8,13 @@ connectDB();
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
 app.use(express.json());
 
 // Health check
@@ -16,9 +22,14 @@ app.get('/', (req, res) => {
   res.json({ message: 'StaffFlow API is running' });
 });
 
+// UptimeRobot ping route
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 // Routes
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/staff', require('./routes/staffAuth')); // employee portal routes (before staff.js)
+app.use('/api/staff', require('./routes/staffAuth'));
 app.use('/api/staff', require('./routes/staff'));
 app.use('/api/attendance', require('./routes/attendance'));
 app.use('/api/transactions', require('./routes/transactions'));
