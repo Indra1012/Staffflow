@@ -11,6 +11,9 @@ const authHeaders = () => ({
 export const staffLogin = (email, password) =>
   axios.post(`${BASE}/login`, { email, password });
 
+export const staffGoogleAuth = (data) =>
+  axios.post(`${BASE}/google`, data);
+
 export const getMyProfile = () =>
   axios.get(`${BASE}/me`, authHeaders());
 

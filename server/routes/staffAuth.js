@@ -7,6 +7,10 @@ const Attendance = require('../models/Attendance');
 const Transaction = require('../models/Transaction');
 const protect = require('../middleware/auth');         // company admin
 const staffProtect = require('../middleware/staffProtect'); // employee
+const { OAuth2Client } = require('google-auth-library');
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
 
 const generateStaffToken = (staff) =>
   jwt.sign(
@@ -48,6 +52,55 @@ router.post('/login', async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// ─── POST /api/staff/google ────────────────────────────────────────────────
+router.post('/google', async (req, res) => {
+  const { credential, email } = req.body;
+  if (!credential) {
+    return res.status(400).json({ message: 'Google credential required' });
+  }
+
+  try {
+    let googleEmail = email;
+    if (!googleEmail) {
+      const ticket = await client.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      const payload = ticket.getPayload();
+      googleEmail = payload.email;
+    }
+
+    if (!googleEmail) {
+      return res.status(400).json({ message: 'Could not verify Google email' });
+    }
+
+    const staff = await Staff.findOne({ email: googleEmail.toLowerCase().trim(), loginEnabled: true })
+      .populate('company', 'companyName')
+      .populate('department', 'name color');
+
+    if (!staff) {
+      return res.status(401).json({ message: 'Access denied. Account not found or unauthorized.' });
+    }
+
+    return res.json({
+      token: generateStaffToken(staff),
+      role: 'staff',
+      staff: {
+        id: staff._id,
+        name: staff.name,
+        role: staff.role,
+        email: staff.email,
+        companyId: staff.company._id,
+        companyName: staff.company.companyName,
+        department: staff.department?.name || '',
+      },
+    });
+  } catch (err) {
+    console.error('Staff Google Auth Error:', err);
+    res.status(500).json({ message: 'Server error during Google auth' });
   }
 });
 
