@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tab-fade {
+  animation: fadeInUp 0.2s ease-out both;
+}
+
+/* 🧼 CLEAN CAPTURE UTILITIES for PDF/Images */
+.is-capturing {
+  background-color: white !important;
+  color: black !important;
+  border-color: #e5e7eb !important; /* Neutral gray border */
+}
+
+/* Neutralize Tailwind 4 "Black Box" Triggers */
+.is-capturing * {
+  box-shadow: none !important;
+  text-shadow: none !important;
+  outline: none !important;
+  background-clip: border-box !important;
+  /* THE HTML2CANVAS FIX: Make all implicit borders transparent */
+  border-color: transparent !important;
+}
+
+/* Restore borders ONLY for elements that explicitly have them */
+.is-capturing .border,
+.is-capturing .border-t,
+.is-capturing .border-b,
+.is-capturing .border-l,
+.is-capturing .border-r {
+  border-color: #e5e7eb !important; /* Neutral gray-200 */
+}
+.is-capturing .border-black { border-color: #000000 !important; }
+
+/* Force standard colors to avoid OKLCH rendering failures */
+.is-capturing .text-black { color: #000000 !important; }
+.is-capturing .text-gray-400 { color: #9ca3af !important; }
+.is-capturing .text-gray-500 { color: #6b7280 !important; }
+.is-capturing .text-gray-600 { color: #4b5563 !important; }
+.is-capturing .bg-gray-50 { background-color: #f9fafb !important; }
+
+/* Convert Rings to Borders for high-fidelity outlines */
+.is-capturing .ring-1, .is-capturing .ring { border: 1px solid #e5e7eb !important; }
+.is-capturing .ring-2 { border: 2px solid #e5e7eb !important; }
