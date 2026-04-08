@@ -48,7 +48,8 @@ export default function Login() {
         navigate('/');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
+      console.error('Login error:', err);
+      setError(err.response?.data?.message || err.message || 'Login failed');
     }
     setLoading(false);
   };
@@ -62,7 +63,8 @@ export default function Login() {
       loginSave(res.data.token, res.data.staff, 'staff');
       navigate('/employee');
     } catch (err) {
-      setEmpError(err.response?.data?.message || 'Login failed');
+      console.error('Emp login error:', err);
+      setEmpError(err.response?.data?.message || err.message || 'Login failed');
     }
     setEmpLoading(false);
   };
@@ -91,7 +93,8 @@ export default function Login() {
       loginSave(res.data.token, res.data.company, 'company');
       navigate('/');
     } catch (err) {
-      setError('Google sign-in failed. Please try again.');
+      console.error('Google auth error:', err);
+      setError(err.response?.data?.message || err.message || 'Google sign-in failed. Please try again.');
     }
     setLoading(false);
   };
@@ -109,7 +112,8 @@ export default function Login() {
       loginSave(res.data.token, res.data.staff, 'staff');
       navigate('/employee');
     } catch (err) {
-      setEmpError(err.response?.data?.message || 'Employee Google sign-in failed.');
+      console.error('Emp Google auth error:', err);
+      setEmpError(err.response?.data?.message || err.message || 'Employee Google sign-in failed.');
     }
     setEmpLoading(false);
   };
