@@ -10,7 +10,7 @@ router.post('/process', protect, async (req, res) => {
     staffId, monthKey, amount, earnedSalary, overtime, otDays,
     bonus, deductions, presentDays, halfDays, absentDays,
     paidHolidayCount, plCount, slCount, openingBalance,
-    closingBalance, paymentMode, note, date, attachment
+    closingBalance, paymentMode, note, date
   } = req.body;
 
   if (!staffId || !monthKey || amount === undefined) {
@@ -39,7 +39,6 @@ router.post('/process', protect, async (req, res) => {
       slCount: slCount || 0,
       openingBalance: openingBalance || 0,
       closingBalance: closingBalance || 0,
-      attachment: attachment || '',
       status: 'paid'
     });
 

@@ -292,7 +292,6 @@ const [showArchivedLedgers, setShowArchivedLedgers] = useState(false);
 
 
   const fileInputRef = useRef(null);
-  const attachmentRef = useRef(null);
   const pdfSourceRef = useRef(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -703,7 +702,6 @@ const earnedSalary = Math.round(totalBasePaidDays * dailyRate);
           paymentMode: modalData.paymentMode || 'Bank',
           note: modalData.remarks || 'Salary Payout',
           date: modalData.date || new Date().toISOString().split('T')[0],
-          attachment: modalData.attachment || '',
         });
         setTransactions(prev => [res.data, ...prev]);
         setStaff(prev => prev.map(s => s._id === modalData.employee._id ? { ...s, balance: newBalance } : s));
@@ -902,18 +900,9 @@ const togglePHForDate = async (dateStr) => {
       paidHolidayCount: liveStats.paidHolidayCount, plCount: liveStats.plCount, slCount: liveStats.slCount,
       earnedSalary: earnedToApply, isSecondary: alreadyPaidThisMonth,
       bonus: fixedBonus, manualDeduction: fixedDed, remarks: '', paymentMode: 'Bank', isEditing: false,
-      actualPaid: initialDue > 0 ? initialDue : 0, attachment: null, date: new Date().toISOString().split('T')[0]
+      actualPaid: initialDue > 0 ? initialDue : 0, date: new Date().toISOString().split('T')[0]
     });
     setIsModalOpen(true);
-  };
-
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setModalData(prev => ({ ...prev, attachment: reader.result }));
-      reader.readAsDataURL(file);
-    }
   };
 
 const handleExportExcel = (range) => {
@@ -1972,12 +1961,6 @@ const handleExportExcel = (range) => {
                     <div><label className="text-[10px] font-bold uppercase tracking-widest text-gray-600 block mb-1">Deduction</label><input type="number" className="w-full bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-black" value={modalData.manualDeduction} onChange={(e) => setModalData({ ...modalData, manualDeduction: Number(e.target.value) })} /></div>
                     <div><label className="text-[10px] font-bold uppercase tracking-widest text-gray-600 block mb-1">Remarks</label><input type="text" className="w-full bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-black" value={modalData.remarks || ''} onChange={(e) => setModalData({ ...modalData, remarks: e.target.value })} /></div>
                     <div><label className="text-[10px] font-bold uppercase tracking-widest text-gray-600 block mb-1">Payment Mode</label><select className="w-full bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-black" value={modalData.paymentMode || 'Bank'} onChange={(e) => setModalData({ ...modalData, paymentMode: e.target.value })}><option value="Bank">Bank</option><option value="Cash">Cash</option><option value="UPI">UPI</option></select></div>
-                    <div><label className="text-[10px] font-bold uppercase tracking-widest text-gray-600 block mb-1">Receipt</label>
-                      <div onClick={() => attachmentRef.current?.click()} className="w-full bg-white border border-dashed border-gray-300 rounded-lg h-[34px] flex items-center justify-center gap-1.5 cursor-pointer hover:bg-gray-50">
-                        {modalData.attachment ? <><CheckCircle2 size={12} className="text-emerald-500" /><span className="text-[10px] font-semibold text-emerald-600">Attached</span></> : <><Paperclip size={12} className="text-gray-400" /><span className="text-[10px] font-semibold text-gray-500">Upload</span></>}
-                        <input type="file" ref={attachmentRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
-                      </div>
-                    </div>
                   </div>
                   <div className="pt-4 border-t border-gray-100">
                     <label className="text-[10px] font-bold uppercase tracking-widest text-gray-700 block mb-1.5">Final Transfer Amount (₹)</label>

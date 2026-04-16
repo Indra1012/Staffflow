@@ -24,7 +24,6 @@ const transactionSchema = new mongoose.Schema({
   slCount:        { type: Number, default: 0 },
   openingBalance: { type: Number, default: 0 },
   closingBalance: { type: Number, default: 0 },
-  attachment:     { type: String, default: '' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Transaction', transactionSchema);

@@ -437,7 +437,6 @@ Example:
    • Deduction — the monthly deduction amount
    • Remarks — add a note (e.g. "February salary")
    • Payment Mode — Bank, Cash, or UPI
-   • Receipt — attach a photo of the payment receipt
 5. The "Final Transfer Amount" field at the bottom shows the total amount to be paid. You can change this — for example, if you only paid ₹8,000 out of ₹10,000 due, type 8000 here. The remaining ₹2,000 will carry over as balance.
 6. Click "Confirm Payout". The salary slip is created and saved.`
       },
