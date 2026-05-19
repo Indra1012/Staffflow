@@ -367,6 +367,12 @@ _Digital record via StaffFlow portal_`;
                     <span className="font-medium text-red-600">-₹{fmt(slip.deductions)}</span>
                   </div>
                 )}
+                {slip.hdDeductionAmount > 0 && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-500">Half Day Deduction</span>
+                    <span className="font-medium text-red-600">-₹{fmt(slip.hdDeductionAmount)}</span>
+                  </div>
+                )}
                 {slip.openingBalance !== 0 && (
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-500">Advance Deducted</span>

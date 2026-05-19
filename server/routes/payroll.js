@@ -8,9 +8,9 @@ const Staff = require('../models/Staff');
 router.post('/process', protect, async (req, res) => {
   const {
     staffId, monthKey, amount, earnedSalary, overtime, otDays,
-    bonus, deductions, presentDays, halfDays, absentDays,
+    bonus, deductions, hdDeductionAmount, presentDays, halfDays, absentDays,
     paidHolidayCount, plCount, slCount, openingBalance,
-    closingBalance, paymentMode, note, date
+    paymentMode, note, date
   } = req.body;
 
   if (!staffId || !monthKey || amount === undefined) {
@@ -20,6 +20,15 @@ router.post('/process', protect, async (req, res) => {
   try {
     const staff = await Staff.findOne({ _id: staffId, company: req.company.id });
     if (!staff) return res.status(404).json({ message: 'Staff not found' });
+
+    // Check if salary for this month already exists
+    const existingTx = await Transaction.findOne({ staff: staffId, monthKey, type: 'salary', company: req.company.id });
+    if (existingTx) {
+      return res.status(400).json({ message: 'Salary slip already exists for this month.' });
+    }
+
+    // Server-side calculation of the closing balance
+    const safeClosingBalance = staff.balance + (earnedSalary || 0) + (overtime || 0) + (bonus || 0) - (deductions || 0) - (amount || 0);
 
     const tx = await Transaction.create({
       company: req.company.id,
@@ -31,19 +40,20 @@ router.post('/process', protect, async (req, res) => {
       otDays: otDays || 0,
       bonus: bonus || 0,
       deductions: deductions || 0,
+      hdDeductionAmount: hdDeductionAmount || 0,
       presentDays: presentDays || 0,
       halfDays: halfDays || 0,
       absentDays: absentDays || 0,
       paidHolidayCount: paidHolidayCount || 0,
       plCount: plCount || 0,
       slCount: slCount || 0,
-      openingBalance: openingBalance || 0,
-      closingBalance: closingBalance || 0,
+      openingBalance: staff.balance || 0,
+      closingBalance: safeClosingBalance,
       status: 'paid'
     });
 
-    // Update staff balance to closing balance
-    await Staff.findByIdAndUpdate(staffId, { balance: closingBalance });
+    // Update staff balance to safe closing balance
+    await Staff.findByIdAndUpdate(staffId, { balance: safeClosingBalance });
 
     res.status(201).json(tx);
   } catch (error) {

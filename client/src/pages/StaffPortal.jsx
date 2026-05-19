@@ -538,6 +538,7 @@ _Find your digital payslip in your StaffFlow portal._`;
                         { label: 'Overtime',          val: selectedSlip.overtime || 0,    positive: true },
                         { label: 'Allowance',         val: selectedSlip.bonus || 0,       positive: true },
                         { label: 'Deductions',        val: selectedSlip.deductions || 0,  positive: false },
+                        ...(selectedSlip.hdDeductionAmount > 0 ? [{ label: 'Half Day Deduction', val: selectedSlip.hdDeductionAmount, positive: false }] : []),
                         { label: 'Opening Balance',   val: selectedSlip.openingBalance || 0, positive: (selectedSlip.openingBalance || 0) >= 0 },
                       ].map(({ label, val, positive }) => (
                         <div key={label} className="flex items-center justify-between py-1.5 border-b border-gray-100 last:border-0">

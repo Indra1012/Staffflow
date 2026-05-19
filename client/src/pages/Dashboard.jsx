@@ -14,7 +14,7 @@ import HelpTab from '../components/HelpTab';
 import { getStaff, addStaff, updateStaff, setStaffCredentials } from '../api/staff';
 import { getDepartments, addDepartment, updateDepartment, deleteDepartment } from '../api/departments';
 import { getAttendance, markAttendance, bulkAttendance } from '../api/attendance';
-import { getTransactions, addTransaction } from '../api/transactions';
+import { getTransactions, addTransaction, deleteTransaction } from '../api/transactions';
 import { processPayroll, getSlips } from '../api/payroll';
 import { useAuth } from '../context/AuthContext';
 import * as XLSX from 'xlsx';
@@ -695,6 +695,7 @@ const earnedSalary = Math.round(totalBasePaidDays * dailyRate);
           paidHolidayCount: modalData.paidHolidayCount,
           plCount: modalData.plCount,
           slCount: modalData.slCount,
+          hdDeductionAmount: modalData.hdDeductionAmount,
           bonus: Number(modalData.bonus) || 0,
           deductions: Number(modalData.manualDeduction) || 0,
           openingBalance: modalData.employee.balance,
@@ -802,6 +803,23 @@ const earnedSalary = Math.round(totalBasePaidDays * dailyRate);
   } catch (err) { alert('Failed to delete department.'); }
 };
 
+const handleDeleteTransaction = async (txId, staffId) => {
+  if (!confirm('Are you sure you want to delete this transaction? This will reverse its effect on the employee balance.')) return;
+  try {
+    await deleteTransaction(txId);
+    setTransactions(prev => prev.filter(t => t._id !== txId));
+    // Refresh staff to get updated balances
+    const freshStaff = await getStaff();
+    setStaff(freshStaff.data);
+    if (selectedLedgerStaff?._id === staffId) {
+      const updatedStaff = freshStaff.data.find(s => s._id === staffId);
+      if (updatedStaff) setSelectedLedgerStaff(updatedStaff);
+    }
+  } catch (err) {
+    alert('Failed to delete transaction: ' + (err.response?.data?.message || err.message));
+  }
+};
+
   const toggleStaffStatus = async (id, currentStatus) => {
     if (!confirm(`Are you sure you want to ${currentStatus !== false ? 'deactivate' : 'activate'} this staff member?`)) return;
     try {
@@ -893,12 +911,18 @@ const togglePHForDate = async (dateStr) => {
     const fixedDed = alreadyPaidThisMonth ? 0 : (employee.fixedDeduction || 0);
     const initialDue = earnedToApply + otToApply + fixedBonus - fixedDed + (employee.balance || 0);
 
+    const currentSalary = getSalaryForDate(employee, `${selectedMonth}-01`);
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const totalDays = new Date(year, month, 0).getDate();
+    const hdDeductionAmount = Math.round((currentSalary / totalDays) * (liveStats.halfDays * 0.5));
+
     setModalType('salary');
     setModalData({
       employee, overtime: otToApply, otDays: liveStats.otDays,
       presentDays: liveStats.presentDays, halfDays: liveStats.halfDays, absentDays: liveStats.absentDays,
       paidHolidayCount: liveStats.paidHolidayCount, plCount: liveStats.plCount, slCount: liveStats.slCount,
       earnedSalary: earnedToApply, isSecondary: alreadyPaidThisMonth,
+      hdDeductionAmount: alreadyPaidThisMonth ? 0 : hdDeductionAmount,
       bonus: fixedBonus, manualDeduction: fixedDed, remarks: '', paymentMode: 'Bank', isEditing: false,
       actualPaid: initialDue > 0 ? initialDue : 0, date: new Date().toISOString().split('T')[0]
     });
@@ -1454,7 +1478,7 @@ const handleExportExcel = (range) => {
                   <div className="overflow-x-auto w-full">
                     <table className="w-full text-left whitespace-nowrap">
                       <thead className="bg-white text-[10px] text-gray-500 uppercase font-bold tracking-wider border-b border-gray-200">
-                        <tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Category</th><th className="px-4 py-3">Description</th><th className="px-4 py-3 text-right">Debit (-)</th><th className="px-4 py-3 text-right">Credit (+)</th></tr>
+                        <tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Category</th><th className="px-4 py-3">Description</th><th className="px-4 py-3 text-right">Debit (-)</th><th className="px-4 py-3 text-right">Credit (+)</th><th className="px-4 py-3 w-10"></th></tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 text-sm text-gray-800">
                         {getStaffLedger(selectedLedgerStaff._id).map(t => (
@@ -1464,9 +1488,12 @@ const handleExportExcel = (range) => {
                             <td className="px-4 py-3 text-gray-600 text-xs truncate max-w-[150px] sm:max-w-xs">{t.note}</td>
                             <td className="px-4 py-3 text-right font-semibold text-red-600 text-xs">{t.type === 'advance' || t.type === 'salary' ? formatCurrency(t.amount) : '-'}</td>
                             <td className="px-4 py-3 text-right font-semibold text-emerald-600 text-xs">{t.type === 'salary' ? formatCurrency((t.earnedSalary || 0) + (t.overtime || 0) + (t.bonus || 0)) : (t.type === 'adjustment' ? formatCurrency(t.amount) : '-')}</td>
+                            <td className="px-4 py-3 text-right">
+                              <button onClick={() => handleDeleteTransaction(t._id, selectedLedgerStaff._id)} className="p-1 text-red-400 hover:bg-red-50 hover:text-red-600 rounded transition-colors"><X size={14} /></button>
+                            </td>
                           </tr>
                         ))}
-                        {getStaffLedger(selectedLedgerStaff._id).length === 0 && <tr><td colSpan="5" className="px-6 py-12 text-center text-gray-400 text-sm">No records found.</td></tr>}
+                        {getStaffLedger(selectedLedgerStaff._id).length === 0 && <tr><td colSpan="6" className="px-6 py-12 text-center text-gray-400 text-sm">No records found.</td></tr>}
                       </tbody>
                     </table>
                   </div>
@@ -1652,7 +1679,10 @@ const handleExportExcel = (range) => {
                             <p className="text-[10px] text-gray-500 font-medium mt-0.5">{tx.date}</p>
                           </div>
                         </div>
-                        <button onClick={() => viewSlip(tx)} className="p-2 text-gray-500 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-black transition-colors flex-shrink-0 shadow-sm"><Printer size={14} /></button>
+                        <div className="flex gap-1 flex-shrink-0">
+                          <button onClick={() => viewSlip(tx)} className="p-2 text-gray-500 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-black transition-colors shadow-sm"><Printer size={14} /></button>
+                          <button onClick={() => handleDeleteTransaction(tx._id, tStaffId)} className="p-2 text-red-400 bg-white border border-red-200 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors shadow-sm"><X size={14} /></button>
+                        </div>
                       </div>
                       <div>
                         <div className="flex justify-between text-xs mb-2 items-end">
@@ -1770,6 +1800,7 @@ const handleExportExcel = (range) => {
                           {modalData.overtime > 0 && <div className="flex justify-between"><span>OT Pay</span><span className="font-semibold">{formatCurrency(modalData.overtime)}</span></div>}
                           {modalData.bonus > 0 && <div className="flex justify-between"><span>Allowance</span><span className="font-semibold">{formatCurrency(modalData.bonus)}</span></div>}
                           {modalData.deductions > 0 && <div className="flex justify-between"><span>Deduction</span><span className="font-semibold text-red-600">-{formatCurrency(modalData.deductions)}</span></div>}
+                          {modalData.hdDeductionAmount > 0 && <div className="flex justify-between"><span>Half Day Deduction</span><span className="font-semibold text-red-600">-{formatCurrency(modalData.hdDeductionAmount)}</span></div>}
                         </div>
                       </div>
                     </div>

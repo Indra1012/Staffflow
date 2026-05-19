@@ -46,5 +46,27 @@ router.post('/', protect, async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
+// DELETE /api/transactions/:id
+router.delete('/:id', protect, async (req, res) => {
+  try {
+    const tx = await Transaction.findOne({ _id: req.params.id, company: req.company.id });
+    if (!tx) return res.status(404).json({ message: 'Transaction not found' });
+
+    // Reverse the balance impact
+    if (tx.type === 'salary') {
+      // Revert to opening balance (since closing balance was saved)
+      await Staff.findByIdAndUpdate(tx.staff, { balance: tx.openingBalance });
+    } else {
+      // Advance or adjustment
+      const balanceDelta = tx.type === 'advance' ? tx.amount : -tx.amount;
+      await Staff.findByIdAndUpdate(tx.staff, { $inc: { balance: balanceDelta } });
+    }
+
+    await Transaction.findByIdAndDelete(tx._id);
+    res.json({ message: 'Transaction deleted and balance reversed' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
 
 module.exports = router;

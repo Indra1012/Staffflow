@@ -16,6 +16,7 @@ const transactionSchema = new mongoose.Schema({
   otDays:         { type: Number, default: 0 },
   bonus:          { type: Number, default: 0 },
   deductions:     { type: Number, default: 0 },
+  hdDeductionAmount: { type: Number, default: 0 },
   presentDays:    { type: Number, default: 0 },
   halfDays:       { type: Number, default: 0 },
   absentDays:     { type: Number, default: 0 },
