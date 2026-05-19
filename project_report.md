@@ -90,7 +90,7 @@ The application utilizes a fully relational document model to link data efficien
 5.  **Transaction Collection:**
     *   Linked to `Company` and `Staff`.
     *   Records financial movements categorized by `type` (salary, advance, adjustment).
-    *   For `salary` types, it holds a comprehensive breakdown resembling a payslip: `earnedSalary`, overtime, bonuses, days present/absent, leave counts, opening/closing balances.
+    *   For `salary` types, it holds a comprehensive breakdown resembling a payslip: `earnedSalary`, overtime, bonuses, days present/absent, leave counts, half-day deductions (`hdDeductionAmount`), and opening/closing balances.
 
 > **[PLACEHOLDER: Insert ER Diagram (Entity-Relationship) of the Database Schema Here]**
 
@@ -115,7 +115,7 @@ Unlike simple check-in systems, StaffFlow supports complex HR scenarios. An admi
 > **[PLACEHOLDER: Insert Image - Attendance Marking Screen]**
 
 ### 7.4 Transactions & Advances Ledger
-Admins can record mid-month cash advances given to workers. This reflects instantly on the employee's running `balance` and is automatically deducted when the final end-of-month salary is generated.
+Admins can record mid-month cash advances given to workers. This reflects instantly on the employee's running `balance` and is automatically deducted when the final end-of-month salary is generated. If an error is made, admins can safely delete the transaction, which automatically reverts the ledger balance to ensure complete financial accuracy.
 > **[PLACEHOLDER: Insert Image - Staff Transaction Ledger/History]**
 
 ### 7.5 Automated Payroll Generation
