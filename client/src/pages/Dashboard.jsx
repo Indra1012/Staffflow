@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import {
   Users, Calendar, Wallet, BarChart3, Plus, Search, ChevronRight, Download,
   CheckCircle2, FileText, MoreVertical, ArrowUpRight, ArrowDownRight,
-  X, Upload, FileSpreadsheet, Trash2, MessageCircle, AlertTriangle, ChevronLeft,
+  X, Upload, FileSpreadsheet, Trash2, MessageCircle, AlertTriangle, ChevronLeft, RefreshCw,
   Archive, ArchiveRestore, Clock, Paperclip,
   ArrowLeftRight, TrendingUp, Edit3, ChevronDown, Printer, Share2, MousePointer2, Settings, HelpCircle,
   Eye, EyeOff
@@ -820,6 +820,28 @@ const handleDeleteTransaction = async (txId, staffId) => {
   }
 };
 
+const handleReSyncPayroll = async (person, slip) => {
+  if (confirm(`Attendance has been modified since this salary slip was processed for ${person.name}.\n\nWould you like to delete the old slip (reversing its balance impact) and re-process the payroll with the updated attendance?`)) {
+    try {
+      await deleteTransaction(slip._id);
+      setTransactions(prev => prev.filter(t => t._id !== slip._id));
+      // Refresh staff to get updated balances
+      const freshStaff = await getStaff();
+      setStaff(freshStaff.data);
+      if (selectedLedgerStaff?._id === person._id) {
+        const updatedStaff = freshStaff.data.find(s => s._id === person._id);
+        if (updatedStaff) setSelectedLedgerStaff(updatedStaff);
+      }
+      
+      // Trigger process payout for this person with the fresh stats
+      const updatedPerson = freshStaff.data.find(s => s._id === person._id);
+      handlePayTrigger(updatedPerson || person);
+    } catch (err) {
+      alert('Failed to re-sync payroll: ' + (err.response?.data?.message || err.message));
+    }
+  }
+};
+
   const toggleStaffStatus = async (id, currentStatus) => {
     if (!confirm(`Are you sure you want to ${currentStatus !== false ? 'deactivate' : 'activate'} this staff member?`)) return;
     try {
@@ -1619,6 +1641,17 @@ const handleExportExcel = (range) => {
                       const tStaffId = t.staff?._id || t.staff;
                       return tStaffId === person._id && t.type === 'salary' && t.monthKey === selectedMonth;
                     });
+                    
+                    const isOutOfSync = monthSlips.some(slip => 
+                      (slip.presentDays || 0) !== stats.presentDays ||
+                      (slip.halfDays || 0) !== stats.halfDays ||
+                      (slip.absentDays || 0) !== stats.absentDays ||
+                      (slip.otDays || 0) !== stats.otDays ||
+                      (slip.plCount || 0) !== stats.plCount ||
+                      (slip.slCount || 0) !== stats.slCount ||
+                      (slip.paidHolidayCount || 0) !== stats.paidHolidayCount
+                    );
+
                     return (
                       <tr key={person._id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-4 py-3 flex items-center gap-2 font-semibold text-black"><Avatar src={person.avatar} name={person.name} className="w-8 h-8" />{person.name}</td>
@@ -1629,7 +1662,26 @@ const handleExportExcel = (range) => {
                         <td className="px-4 py-3 text-center text-[10px] font-medium text-gray-500">{stats.presentDays}P / {stats.paidHolidayCount}PH / {stats.halfDays}H / {stats.otDays}OT</td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex flex-col items-end gap-1.5">
-                            <button onClick={() => handlePayTrigger(person)} className="bg-black text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-gray-800 transition-colors flex items-center gap-1">Process <ChevronRight size={12} /></button>
+                            {monthSlips.length > 0 ? (
+                              isOutOfSync ? (
+                                <div className="flex flex-col items-end gap-1">
+                                  <button onClick={() => handleReSyncPayroll(person, monthSlips[0])} className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center gap-1 shadow-sm">
+                                    <RefreshCw size={12} /> Re-Sync Payout
+                                  </button>
+                                  <span className="text-[9px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm animate-pulse">
+                                    <AlertTriangle size={10} /> Attendance Changed
+                                  </span>
+                                </div>
+                              ) : (
+                                <button disabled className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 opacity-75 cursor-not-allowed">
+                                  <CheckCircle2 size={12} /> Processed
+                                </button>
+                              )
+                            ) : (
+                              <button onClick={() => handlePayTrigger(person)} className="bg-black text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-gray-800 transition-colors flex items-center gap-1">
+                                Process <ChevronRight size={12} />
+                              </button>
+                            )}
                             {monthSlips.length > 0 && (
                               <div className="flex gap-1 mt-1">
                                 {monthSlips.map((slip, idx) => (
